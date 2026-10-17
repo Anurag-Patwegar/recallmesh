@@ -28,6 +28,10 @@ class DeterministicChatAgent:
         if match:
             key = f"preferred_{re.sub(r'[^a-z0-9]+', '_', match.group(1).strip().lower()).strip('_')}"
             memories.append(("semantic", key, f"My preferred {match.group(1).strip()} is {match.group(2).strip()}."))
+        generic = re.search(r"my\s+([a-z][a-z ]{1,30})\s+is\s+(.+?)(?:\.|$)", text, re.I)
+        if generic and not match:
+            subject = re.sub(r"[^a-z0-9]+", "_", generic.group(1).strip().lower()).strip("_")
+            memories.append(("semantic", f"personal_{subject}", f"My {generic.group(1).strip()} is {generic.group(2).strip()} .".replace(" .", ".")))
         process = re.search(r"(?:our\s+)?release\s+process\s+(?:requires|is|includes)\s+(.+?)(?:\.|$)", text, re.I)
         if process:
             memories.append(("procedural", "release_process", f"Our release process requires {process.group(1).strip()}."))

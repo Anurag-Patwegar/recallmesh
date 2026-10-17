@@ -141,18 +141,28 @@ def render_graph():
         return
     node_map = {}
     lines = ["digraph RecallMesh {", "rankdir=LR;", "node [shape=box style=filled fontname=Arial];"]
+    def property_key(properties, index):
+        for name in ("memory_id", "task_id", "handoff_id", "session_id", "agent_id", "turn_id", "event_id"):
+            value = properties.get(name) if properties else None
+            if value is not None and str(value):
+                return str(value)
+        return f"node_{index}"
+
     for index, record in enumerate(records[:100]):
         props = record["properties"] or {}
-        key = next((props.get(name) for name in ("memory_id", "task_id", "handoff_id", "session_id", "agent_id", "turn_id", "event_id")), f"node_{index}")
+        key = property_key(props, index)
         node_id = f"n{index}"
-        node_map[str(key)] = node_id
+        node_map[key] = node_id
         label = f"{record['labels'][0]}\\n{str(key)[:28]}"
         lines.append(f'{node_id} [label="{html.escape(label).replace(chr(34), chr(92)+chr(34))}"];')
+    seen_edges = set()
     for rel in relationships[:200]:
-        source = next((rel["from_properties"].get(name) for name in ("memory_id", "task_id", "handoff_id", "session_id", "agent_id", "turn_id", "event_id") if rel["from_properties"] and rel["from_properties"].get(name)), None)
-        target = next((rel["to_properties"].get(name) for name in ("memory_id", "task_id", "handoff_id", "session_id", "agent_id", "turn_id", "event_id") if rel["to_properties"] and rel["to_properties"].get(name)), None)
-        if str(source) in node_map and str(target) in node_map:
-            lines.append(f'{node_map[str(source)]} -> {node_map[str(target)]} [label="{rel["relationship"]}"];')
+        source = property_key(rel["from_properties"], -1)
+        target = property_key(rel["to_properties"], -1)
+        edge = (source, target, rel["relationship"])
+        if source in node_map and target in node_map and edge not in seen_edges:
+            seen_edges.add(edge)
+            lines.append(f'{node_map[source]} -> {node_map[target]} [label="{rel["relationship"]}"];')
     lines.append("}")
     st.graphviz_chart("\n".join(lines), use_container_width=True)
     st.caption(f"Rendered from {len(records)} FalkorDB nodes and {len(relationships)} FalkorDB relationships.")
