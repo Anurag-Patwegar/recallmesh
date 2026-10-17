@@ -1,0 +1,12 @@
+services:
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports: ["6379:6379"]
+  app:
+    build: .
+    ports: ["8501:8501"]
+    environment:
+      FALKORDB_HOST: falkordb
+      FALKORDB_PORT: 6379
+    depends_on: [falkordb]
+
